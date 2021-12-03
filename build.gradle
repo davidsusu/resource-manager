@@ -1,0 +1,96 @@
+plugins {
+    id 'java-library'
+    id 'eclipse'
+    id 'signing'
+    id 'maven'
+    id 'com.palantir.git-version' version '0.12.3'
+}
+
+sourceCompatibility = "1.8";
+targetCompatibility = "1.8";
+
+group = 'hu.webarticum'
+version = gitVersion().replaceAll(/^v|\.dirty$/, '')
+description = 'Simple resource manager'
+
+def scmUrl = 'https://github.com/davidsusu/resource-manager.git'
+def websiteUrl = scmUrl.replaceAll(/\.git$/, "");
+
+repositories {
+    jcenter()
+    mavenCentral()
+}
+
+dependencies {
+    implementation 'org.slf4j:slf4j-api:1.7.32'
+    
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.3.2'
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.3.2'
+    testImplementation 'org.junit.jupiter:junit-jupiter-params:5.3.2'
+    testImplementation 'org.junit.jupiter:junit-jupiter-engine:5.3.2'
+    testImplementation 'org.junit.platform:junit-platform-launcher:1.4.1'
+    testImplementation 'org.assertj:assertj-core:3.12.2'
+    
+}
+
+signing {
+    required { true }
+    sign configurations.archives
+}
+
+task javadocJar(type: Jar, dependsOn: javadoc) {
+    classifier = 'javadoc'
+    from javadoc.destinationDir
+}
+
+task sourcesJar(type: Jar, dependsOn: classes) {
+    classifier = 'sources'
+    from sourceSets.main.allSource
+}
+
+artifacts {
+    archives javadocJar, sourcesJar
+}
+
+if (project.ext.properties.containsKey('mavenRepositoryUrl')) {
+    uploadArchives {
+        repositories {
+            mavenDeployer {
+                repository(url: project.ext.mavenRepositoryUrl) {
+                    authentication(
+                        userName: project.ext.mavenRepositoryUsername,
+                        password: project.ext.mavenRepositoryPassword
+                    )
+                }
+                beforeDeployment { MavenDeployment deployment ->
+                    signing.signPom(deployment)
+                }
+                pom.artifactId = project.name
+                pom.project {
+                    name = project.name
+                    description = project.description
+                    url = websiteUrl
+                    licenses {
+                        license {
+                            name 'The Apache Software License, Version 2.0'
+                            url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                            distribution 'repo'
+                        }
+                    }
+                    scm {
+                        connection 'scm:git:' + scmUrl
+                        developerConnection 'scm:git:' + scmUrl
+                        url scmUrl
+                    }
+                    developers {
+                        developer {
+                            id = 'davidsusu'
+                            name = 'Dávid Horváth'
+                            email = 'horvath@webarticum.hu'
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
